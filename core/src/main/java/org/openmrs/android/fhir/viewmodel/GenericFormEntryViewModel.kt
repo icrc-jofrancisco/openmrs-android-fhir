@@ -499,9 +499,13 @@ constructor(
     fhirEngine.create(resource)
   }
 
-  fun updateQuestionnaire(updated: Questionnaire) {
+  /** [json] is [updated] written out, when the caller already has it. */
+  fun updateQuestionnaire(
+    updated: Questionnaire,
+    json: String = parser.encodeResourceToString(updated),
+  ) {
     _questionnaire.value = updated
-    _questionnaireJson.value = parser.encodeResourceToString(updated)
+    _questionnaireJson.value = json
   }
 
   private fun extractSessionDateFromQuestionnaireResponse(

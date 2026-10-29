@@ -26,6 +26,12 @@ Recorded on `main` @ `cdd4117`, Windows, JDK 17 toolchain, no emulator.
 - **Diagnostics export off the main thread** (`MainActivity`): log read + AES zip no longer run inside `runBlocking` on the UI thread. Commit `ceee5d3`.
 - **Sync-info worker** (`SyncInfoDatabaseWriterWorker`): cancel the `shareIn` scope in `finally`, rethrow `CancellationException`, log with Timber instead of `println`. Commit `159113c`.
 
+### Performance (group sessions; not benchmarked, see `docs/dev/form-performance.md`)
+- **Validation of a patient's answers is remembered** (`AnswersValidationMemo`, `GroupFormEntryViewModel.areAnswersValid`): the tab marks, tab switches and the final check no longer walk answers that did not change since they were last checked; forms using `today()` / `now()` are always checked again. Same results, fewer checks. Test: `AnswersValidationMemoTest`.
+- **Draft saved only when it changed** (`GroupSessionDraftRepository`): a save with the same content only updates `lastUpdated`; a draft that was erased is written again in full. Test: `GroupSessionDraftRepositoryTest`.
+- **The group form is no longer read back from its own JSON** (`GroupFormEntryViewModel.publishedEncounterQuestionnaire`): one parse and one write less each time the screener answers are plugged in or a draft is restored. Test: `QuestionnaireCopyTest` (every bundled form, three language settings; adds the test-only dependency `org.json:json`, because the one in `android.jar` is a stub in unit tests).
+- No tutorial step changes (no control added, moved or removed).
+
 ### Removed (dead code)
 - 11 unreferenced RecyclerView adapter/view-holder files and the `activity_login`, `activity_basic_login`, `activity_splash` layouts. Verified by compiling main + unit-test + androidTest sources and assembling the debug app. Commit `8795853`.
 

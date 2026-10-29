@@ -165,8 +165,10 @@ class GroupFormEntryFragment : Fragment(R.layout.group_formentry_fragment) {
     }
     viewModel.encounterQuestionnaireJson.observe(viewLifecycleOwner) {
       it?.let { json ->
-        val q = parser.parseResource(Questionnaire::class.java, json)
-        genericFormEntryViewModel.updateQuestionnaire(q)
+        val q =
+          viewModel.publishedEncounterQuestionnaire
+            ?: parser.parseResource(Questionnaire::class.java, json)
+        genericFormEntryViewModel.updateQuestionnaire(q, json)
         if (viewModel.isScreenerCompleted && hasStartedPatientForms) {
           loadQuestionnaireForTab(currentSelectedTabPosition)
         }
@@ -354,26 +356,30 @@ class GroupFormEntryFragment : Fragment(R.layout.group_formentry_fragment) {
     loadQuestionnaireForTab(currentSelectedTabPosition)
   }
 
+  /** Keeps the answers of the patient in memory (and in the draft); returns them as JSON. */
   private suspend fun cacheCurrentPatientResponse(
     patientId: String? = currentPatientId,
     questionnaireResponse: QuestionnaireResponse? = null,
     persist: Boolean = true,
     validate: Boolean = true,
-  ) {
+  ): String? {
     val response =
       questionnaireResponse
         ?: safeQuestionnaireResponse(currentQuestionnaireFragment as? QuestionnaireFragment)
 
-    if (patientId.isNullOrBlank() || response == null) return
+    if (patientId.isNullOrBlank() || response == null) return null
 
-    try {
-      viewModel.patientResponses[patientId] = parser.encodeResourceToString(response)
-      if (validate) updatePatientValidationIndicator(patientId, response)
+    return try {
+      val responseJson = parser.encodeResourceToString(response)
+      viewModel.patientResponses[patientId] = responseJson
+      if (validate) updatePatientValidationIndicator(patientId, response, responseJson)
       if (persist) {
         viewModel.saveDraft(args.questionnaireId, patientIds)
       }
+      responseJson
     } catch (exception: Exception) {
       Timber.e(exception.localizedMessage)
+      null
     }
   }
 
@@ -579,13 +585,16 @@ class GroupFormEntryFragment : Fragment(R.layout.group_formentry_fragment) {
   private suspend fun updatePatientValidationIndicator(
     patientId: String,
     questionnaireResponse: QuestionnaireResponse,
+    responseJson: String,
   ) {
     val questionnaire = genericFormEntryViewModel.questionnaire.value ?: return
     val hasValidationErrors =
-      !viewModel.isValidQuestionnaireResponse(
+      !viewModel.areAnswersValid(
+        patientId,
         questionnaire,
-        questionnaireResponse,
+        responseJson,
         requireContext(),
+        questionnaireResponse,
       )
     val tabPosition = viewModel.patients.value?.indexOfFirst { it.resourceId == patientId } ?: -1
     if (tabPosition >= 0) {
@@ -599,11 +608,13 @@ class GroupFormEntryFragment : Fragment(R.layout.group_formentry_fragment) {
     patients.forEachIndexed { index, patient ->
       val responseJson = viewModel.patientResponses[patient.resourceId] ?: return@forEachIndexed
       try {
-        val response =
-          parser.parseResource(QuestionnaireResponse::class.java, responseJson)
-            as QuestionnaireResponse
         val hasValidationErrors =
-          !viewModel.isValidQuestionnaireResponse(questionnaire, response, requireContext())
+          !viewModel.areAnswersValid(
+            patient.resourceId,
+            questionnaire,
+            responseJson,
+            requireContext(),
+          )
         withContext(Dispatchers.Main) { updateTabIndicatorState(index, hasValidationErrors) }
       } catch (exception: Exception) {
         Timber.e(exception.localizedMessage)
@@ -628,20 +639,31 @@ class GroupFormEntryFragment : Fragment(R.layout.group_formentry_fragment) {
         }
           ?: return false
     // Kept in memory now and validated once below; the draft is written after the switch.
-    cacheCurrentPatientResponse(
-      patientId,
-      questionnaireResponse,
-      persist = false,
-      validate = false,
-    )
+    val answersJson =
+      cacheCurrentPatientResponse(
+        patientId,
+        questionnaireResponse,
+        persist = false,
+        validate = false,
+      )
 
     val questionnaire = genericFormEntryViewModel.questionnaire.value ?: return false
     val hasValidationErrors =
-      !viewModel.isValidQuestionnaireResponse(
-        questionnaire,
-        questionnaireResponse,
-        requireContext(),
-      )
+      !(if (answersJson != null) {
+        viewModel.areAnswersValid(
+          patientId,
+          questionnaire,
+          answersJson,
+          requireContext(),
+          questionnaireResponse,
+        )
+      } else {
+        viewModel.isValidQuestionnaireResponse(
+          questionnaire,
+          questionnaireResponse,
+          requireContext(),
+        )
+      })
     updateTabIndicatorState(tabPosition, hasValidationErrors)
     return hasValidationErrors
   }
@@ -717,11 +739,13 @@ class GroupFormEntryFragment : Fragment(R.layout.group_formentry_fragment) {
           continue
         }
 
-        val response =
-          parser.parseResource(QuestionnaireResponse::class.java, responseJson)
-            as QuestionnaireResponse
         val hasValidationErrors =
-          !viewModel.isValidQuestionnaireResponse(questionnaire, response, requireContext())
+          !viewModel.areAnswersValid(
+            patient.resourceId,
+            questionnaire,
+            responseJson,
+            requireContext(),
+          )
         if (hasValidationErrors) {
           patientsWithIssues.add(patient)
         }
