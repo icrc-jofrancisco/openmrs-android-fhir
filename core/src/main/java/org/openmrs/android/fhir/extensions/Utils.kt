@@ -235,62 +235,19 @@ private const val QUESTIONNAIRE_ITEM_CONTROL_URL =
 private const val QUESTIONNAIRE_ITEM_CONTROL_SYSTEM =
   "http://hl7.org/fhir/questionnaire-item-control"
 private const val QUESTIONNAIRE_ITEM_CONTROL_PAGE = "page"
-private const val PAGE_SPACER_TEXT = "&#8203;<br><br><br><br><br><br><br>"
-const val PAGE_SPACER_LINK_ID_PREFIX = "__page_spacer__"
 
-fun Questionnaire.ensurePageGroupsHaveTrailingSpacer() {
-  item.forEach { questionnaireItem -> questionnaireItem.ensurePageGroupsHaveTrailingSpacer() }
-}
-
-private fun QuestionnaireItemComponent.ensurePageGroupsHaveTrailingSpacer() {
-  item.forEach { childItem -> childItem.ensurePageGroupsHaveTrailingSpacer() }
-
-  if (!isPageGroupItem()) {
-    return
-  }
-
-  val existingSpacerIndex = item.indexOfFirst { it.isPageSpacerItem() }
-  if (existingSpacerIndex != -1) {
-    val spacerItem = item.removeAt(existingSpacerIndex)
-    item.add(spacerItem)
-    return
-  }
-
-  item.add(
-    QuestionnaireItemComponent().apply {
-      linkId = PAGE_SPACER_LINK_ID_PREFIX + generateUuid()
-      type = Questionnaire.QuestionnaireItemType.DISPLAY
-      text = PAGE_SPACER_TEXT
-    },
-  )
-}
-
-fun QuestionnaireResponse.removePageSpacerItemsRecursively() {
-  item.removePageSpacerItemsRecursively()
-}
-
-private fun MutableList<QuestionnaireResponse.QuestionnaireResponseItemComponent>
-  .removePageSpacerItemsRecursively() {
-  removeAll { responseItem -> responseItem.linkId.startsWith(PAGE_SPACER_LINK_ID_PREFIX) }
-  forEach { responseItem -> responseItem.item.removePageSpacerItemsRecursively() }
-}
-
-suspend fun Questionnaire.hasInvalidAnswersIgnoringPageSpacers(
+suspend fun Questionnaire.hasInvalidAnswers(
   questionnaireResponse: QuestionnaireResponse,
   applicationContext: Context,
-): Boolean {
-  val sanitizedResponse = questionnaireResponse.copy() as QuestionnaireResponse
-  sanitizedResponse.removePageSpacerItemsRecursively()
-
-  return QuestionnaireResponseValidator.validateQuestionnaireResponse(
+): Boolean =
+  QuestionnaireResponseValidator.validateQuestionnaireResponse(
       this,
-      sanitizedResponse,
+      questionnaireResponse,
       applicationContext,
     )
     .values
     .flatten()
     .any { it is Invalid }
-}
 
 private const val SDC_ENTRY_MODE_URL =
   "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-entryMode"
@@ -356,8 +313,4 @@ private fun QuestionnaireItemComponent.isPageGroupItem(): Boolean {
           coding.code == QUESTIONNAIRE_ITEM_CONTROL_PAGE
       } == true
   }
-}
-
-private fun QuestionnaireItemComponent.isPageSpacerItem(): Boolean {
-  return type == Questionnaire.QuestionnaireItemType.DISPLAY && text == PAGE_SPACER_TEXT
 }

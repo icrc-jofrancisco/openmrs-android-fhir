@@ -40,7 +40,6 @@ import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.commit
-import androidx.fragment.app.commitNow
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
@@ -105,6 +104,14 @@ class GroupFormEntryFragment : Fragment(R.layout.group_formentry_fragment) {
 
   /** Patients whose form is alive, the one in use first. */
   private val recentForms = ArrayDeque<String>()
+
+  /**
+   * The live forms by patient, the ones whose transaction has not run yet included: a transaction
+   * is not applied at once, and the form of a patient is asked for more than once while the group
+   * starts (the first form, the questionnaire arriving, the tab). Looking the form up in the
+   * fragment manager in between would not find it and build another one, drawn over the first.
+   */
+  private val liveForms = mutableMapOf<String, QuestionnaireFragment>()
   private var currentPatientId: String? = null
   private val parser = FhirContext.forCached(FhirVersionEnum.R4).newJsonParser()
 
@@ -128,6 +135,7 @@ class GroupFormEntryFragment : Fragment(R.layout.group_formentry_fragment) {
     setUpActionBar()
     (requireActivity().application as FhirApplication).appComponent.inject(this)
     keepBelowAppBar()
+    adoptRestoredForms()
     observeLoading()
     binding.patientTabLayout.visibility = View.GONE
     viewModel.getPatients(args.patientIds.toSet())
@@ -196,6 +204,18 @@ class GroupFormEntryFragment : Fragment(R.layout.group_formentry_fragment) {
     mainActivityViewModel.setDrawerEnabled(false)
     observePatients()
   }
+
+  /** After the screen is recreated the fragment manager gives back the forms it kept. */
+  private fun adoptRestoredForms() {
+    childFragmentManager.fragments.filterIsInstance<QuestionnaireFragment>().forEach { form ->
+      val patientId = form.tag?.removePrefixOrNull(QUESTIONNAIRE_FRAGMENT_TAG) ?: return@forEach
+      liveForms[patientId] = form
+      recentForms.addLast(patientId)
+    }
+  }
+
+  private fun String.removePrefixOrNull(prefix: String): String? =
+    if (startsWith(prefix)) removePrefix(prefix) else null
 
   /** The screen is drawn under the app bar overlay: pad by what is really there. */
   private fun keepBelowAppBar() {
@@ -272,7 +292,7 @@ class GroupFormEntryFragment : Fragment(R.layout.group_formentry_fragment) {
     // and coming back to one is instant, with the answers and the open page as they were left.
     // A form that is built again starts from the answers kept in the view model.
     val tag = QUESTIONNAIRE_FRAGMENT_TAG + patientId
-    val kept = childFragmentManager.findFragmentByTag(tag) as? QuestionnaireFragment
+    val kept = liveForms[patientId]
     val newFragment =
       kept
         ?: newQuestionnaireFragment(
@@ -283,20 +303,18 @@ class GroupFormEntryFragment : Fragment(R.layout.group_formentry_fragment) {
         )
     recentForms.remove(patientId)
     recentForms.addFirst(patientId)
-    val dropped = mutableSetOf<String>()
-    while (recentForms.size > MAX_LIVE_FORMS) dropped.add(recentForms.removeLast())
+    liveForms[patientId] = newFragment
+    val dropped = mutableListOf<QuestionnaireFragment>()
+    while (recentForms.size > MAX_LIVE_FORMS) {
+      liveForms.remove(recentForms.removeLast())?.let { dropped.add(it) }
+    }
     childFragmentManager.commit {
       setReorderingAllowed(true)
-      childFragmentManager.fragments.forEach { fragment ->
-        val other = fragment.tag ?: return@forEach
-        when {
-          fragment === newFragment -> Unit
-          other == SCREENER_FRAGMENT_TAG -> remove(fragment)
-          other.startsWith(QUESTIONNAIRE_FRAGMENT_TAG) &&
-            other.removePrefix(QUESTIONNAIRE_FRAGMENT_TAG) in dropped -> remove(fragment)
-          else -> hide(fragment)
-        }
-      }
+      childFragmentManager.fragments
+        .filter { it.tag == SCREENER_FRAGMENT_TAG }
+        .forEach { remove(it) }
+      dropped.forEach { remove(it) }
+      liveForms.values.filter { it !== newFragment }.forEach { hide(it) }
       if (kept != null) show(kept) else add(R.id.form_entry_container, newFragment, tag)
     }
 
@@ -310,11 +328,15 @@ class GroupFormEntryFragment : Fragment(R.layout.group_formentry_fragment) {
   private fun discardPatientForms() {
     recentForms.clear()
     val stale =
-      childFragmentManager.fragments.filter {
-        it.tag?.startsWith(QUESTIONNAIRE_FRAGMENT_TAG) == true
-      }
+      (childFragmentManager.fragments.filter {
+          it.tag?.startsWith(QUESTIONNAIRE_FRAGMENT_TAG) == true
+        } + liveForms.values)
+        .distinct()
+    liveForms.clear()
     if (stale.isEmpty()) return
-    childFragmentManager.commitNow(allowStateLoss = true) { stale.forEach { remove(it) } }
+    // Not "now": a form added a moment ago may not be in the manager yet, and its removal has to
+    // come after its addition. The form that replaces them is added after this, in order.
+    childFragmentManager.commit(allowStateLoss = true) { stale.forEach { remove(it) } }
   }
 
   private fun startPatientQuestionnaires() {

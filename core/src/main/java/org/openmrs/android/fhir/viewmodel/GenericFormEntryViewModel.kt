@@ -75,11 +75,10 @@ import org.openmrs.android.fhir.data.sync.LiveSync
 import org.openmrs.android.fhir.di.DefaultDispatcher
 import org.openmrs.android.fhir.di.ViewModelAssistedFactory
 import org.openmrs.android.fhir.extensions.convertDateAnswersToUtcDateTime
-import org.openmrs.android.fhir.extensions.ensurePageGroupsHaveTrailingSpacer
 import org.openmrs.android.fhir.extensions.findItemByLinkId
 import org.openmrs.android.fhir.extensions.generateUuid
 import org.openmrs.android.fhir.extensions.getQuestionnaireOrFromAssets
-import org.openmrs.android.fhir.extensions.hasInvalidAnswersIgnoringPageSpacers
+import org.openmrs.android.fhir.extensions.hasInvalidAnswers
 import org.openmrs.android.fhir.extensions.nowUtcDateTime
 import org.openmrs.android.fhir.forms.diagnosis.diagnosisCatalogs
 import org.openmrs.android.fhir.forms.diagnosis.diagnosisConditions
@@ -127,7 +126,6 @@ constructor(
         withContext(defaultDispatcher) {
           val q =
             fhirEngine.getQuestionnaireOrFromAssets(questionnaireId, applicationContext, parser)
-          q?.ensurePageGroupsHaveTrailingSpacer()
           if (startOnToday && q != null) prepareEnterEncounter(q)
           q to (q?.let { parser.encodeResourceToString(it) } ?: "")
         }
@@ -228,7 +226,7 @@ constructor(
       }
 
       if (
-        questionnaire.hasInvalidAnswersIgnoringPageSpacers(
+        questionnaire.hasInvalidAnswers(
           questionnaireResponse,
           applicationContext,
         )
