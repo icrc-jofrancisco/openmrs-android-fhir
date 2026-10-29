@@ -268,8 +268,10 @@ fun Questionnaire.requireAnswersBeforeReview() {
  * Shows a form that is one long scroll page by page (Next / Previous), one page per section, with
  * what is asked and what is extracted from the answers unchanged. The pages are the top-level
  * groups; when the form is one group that holds the sections (the OpenMRS registration form), the
- * sections are the pages. A form that is already paged, or has no group, is left alone. Questions
- * outside any group (identifiers the app adds) go at the top of the first page.
+ * sections are the pages, and a question of that group that is in no section stays where it was: at
+ * the end of the section before it, or at the top of the first page when it comes before every
+ * section. A form that is already paged, or has no group, is left alone. Questions outside any
+ * group (identifiers the app adds) go at the top of the first page.
  *
  * Only one page is drawn at a time, which is also what makes a long form open and scroll faster.
  */
@@ -286,10 +288,18 @@ fun Questionnaire.pagedBySections() {
   if (item.size == 1) {
     val sections = item.first().item.filter { it.isGroup() }
     if (sections.size >= 2) {
-      val looseInside = item.first().item.filter { !it.isGroup() }
+      val leading = mutableListOf<QuestionnaireItemComponent>()
+      var current: QuestionnaireItemComponent? = null
+      item.first().item.forEach { child ->
+        when {
+          child.isGroup() -> current = child
+          current == null -> leading.add(child)
+          else -> current!!.item.add(child)
+        }
+      }
       item.clear()
       item.addAll(sections)
-      if (looseInside.isNotEmpty()) sections.first().item.addAll(0, looseInside)
+      if (leading.isNotEmpty()) sections.first().item.addAll(0, leading)
     }
   }
   item.forEach { page ->
