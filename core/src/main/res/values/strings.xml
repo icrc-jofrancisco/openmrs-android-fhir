@@ -1451,4 +1451,37 @@ Set up biometrics (face/fingerprint) in Settings to enable offline login.
     <string
         name="help_settings_search_body"
     >Type a word (sync, language, lock…) to show only the sections that mention it.</string>
+    <string name="diagnosis_picker_title">Select diagnoses</string>
+    <string name="diagnosis_picker_add">Search diagnoses</string>
+    <string name="diagnosis_picker_title_single">Select a diagnosis</string>
+    <string name="diagnosis_picker_add_single">Search for a diagnosis</string>
+    <string
+        name="diagnosis_picker_none_single"
+    >No diagnosis selected yet</string>
+    <string name="diagnosis_picker_recent">Recent diagnoses</string>
+    <string name="diagnosis_picker_none">No diagnosis selected yet</string>
+    <string name="diagnosis_picker_search_hint">Search by name or code</string>
+    <string name="diagnosis_picker_clear">Clear the search</string>
+    <string name="diagnosis_picker_selected_count">%1$d selected</string>
+    <string name="diagnosis_picker_matches">%1$d matches</string>
+    <string
+        name="diagnosis_picker_more"
+    >Showing the first %1$d of %2$d matches. Keep typing to narrow them down.</string>
+    <string
+        name="diagnosis_picker_no_match"
+    >No diagnosis matches your search</string>
+    <string name="diagnosis_picker_done">Done</string>
+    <string name="diagnosis_picker_remove">Remove %1$s</string>
+    <string
+        name="diagnosis_picker_unavailable"
+    >The list of diagnoses is not on this device.</string>
+    <string
+        name="diagnosis_picker_loading"
+    >Loading the list of diagnoses…</string>
+    <string
+        name="diagnosis_picker_type_to_search"
+    >Type a name or an ICD-10 code to search %1$d diagnoses</string>
+    <string
+        name="diagnosis_picker_rank_hint"
+    >The first diagnosis is the primary one; the others are secondary.</string>
 </resources>

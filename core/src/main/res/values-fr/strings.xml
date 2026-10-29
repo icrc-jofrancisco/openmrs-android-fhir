@@ -1597,4 +1597,43 @@
     <string
         name="help_settings_search_body"
     >Tapez un mot (synchronisation, langue, verrouillage…) pour n\'afficher que les sections qui le mentionnent.</string>
+    <string name="diagnosis_picker_title">Sélectionner des diagnostics</string>
+    <string name="diagnosis_picker_add">Rechercher des diagnostics</string>
+    <string
+        name="diagnosis_picker_title_single"
+    >Sélectionner un diagnostic</string>
+    <string name="diagnosis_picker_add_single">Rechercher un diagnostic</string>
+    <string
+        name="diagnosis_picker_none_single"
+    >Aucun diagnostic sélectionné pour le moment</string>
+    <string name="diagnosis_picker_recent">Diagnostics récents</string>
+    <string
+        name="diagnosis_picker_none"
+    >Aucun diagnostic sélectionné pour le moment</string>
+    <string
+        name="diagnosis_picker_search_hint"
+    >Rechercher par nom ou par code</string>
+    <string name="diagnosis_picker_clear">Effacer la recherche</string>
+    <string name="diagnosis_picker_selected_count">%1$d sélectionné(s)</string>
+    <string name="diagnosis_picker_matches">%1$d résultat(s)</string>
+    <string
+        name="diagnosis_picker_more"
+    >Les %1$d premiers résultats sur %2$d sont affichés. Continuez à saisir pour affiner.</string>
+    <string
+        name="diagnosis_picker_no_match"
+    >Aucun diagnostic ne correspond à la recherche</string>
+    <string name="diagnosis_picker_done">Terminé</string>
+    <string name="diagnosis_picker_remove">Retirer %1$s</string>
+    <string
+        name="diagnosis_picker_unavailable"
+    >La liste des diagnostics n’est pas sur cet appareil.</string>
+    <string
+        name="diagnosis_picker_loading"
+    >Chargement de la liste des diagnostics…</string>
+    <string
+        name="diagnosis_picker_type_to_search"
+    >Saisissez un nom ou un code CIM-10 pour chercher parmi %1$d diagnostics</string>
+    <string
+        name="diagnosis_picker_rank_hint"
+    >Le premier diagnostic est le diagnostic principal ; les autres sont secondaires.</string>
 </resources>

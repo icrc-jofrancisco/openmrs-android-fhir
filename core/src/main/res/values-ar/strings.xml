@@ -1435,4 +1435,33 @@
     <string
         name="help_settings_search_body"
     >اكتب كلمة (المزامنة، اللغة، القفل…) لإظهار الأقسام التي تذكرها فقط.</string>
+    <string name="diagnosis_picker_title">اختيار التشخيصات</string>
+    <string name="diagnosis_picker_add">البحث عن تشخيصات</string>
+    <string name="diagnosis_picker_title_single">اختيار تشخيص</string>
+    <string name="diagnosis_picker_add_single">البحث عن تشخيص</string>
+    <string
+        name="diagnosis_picker_none_single"
+    >لم يتم اختيار أي تشخيص بعد</string>
+    <string name="diagnosis_picker_recent">التشخيصات الأخيرة</string>
+    <string name="diagnosis_picker_none">لم يتم اختيار أي تشخيص بعد</string>
+    <string name="diagnosis_picker_search_hint">ابحث بالاسم أو الرمز</string>
+    <string name="diagnosis_picker_clear">مسح البحث</string>
+    <string name="diagnosis_picker_selected_count">تم اختيار %1$d</string>
+    <string name="diagnosis_picker_matches">%1$d نتيجة</string>
+    <string
+        name="diagnosis_picker_more"
+    >يتم عرض أول %1$d من أصل %2$d نتيجة. واصل الكتابة لتضييق النتائج.</string>
+    <string name="diagnosis_picker_no_match">لا يوجد تشخيص مطابق للبحث</string>
+    <string name="diagnosis_picker_done">تم</string>
+    <string name="diagnosis_picker_remove">إزالة %1$s</string>
+    <string
+        name="diagnosis_picker_unavailable"
+    >قائمة التشخيصات غير موجودة على هذا الجهاز.</string>
+    <string name="diagnosis_picker_loading">جارٍ تحميل قائمة التشخيصات…</string>
+    <string
+        name="diagnosis_picker_type_to_search"
+    >اكتب اسمًا أو رمز التصنيف الدولي للأمراض (ICD-10) للبحث بين %1$d تشخيصًا</string>
+    <string
+        name="diagnosis_picker_rank_hint"
+    >التشخيص الأول هو التشخيص الأساسي، والبقية ثانوية.</string>
 </resources>

@@ -1552,4 +1552,35 @@
     <string
         name="help_settings_search_body"
     >Введите слово (синхронизация, язык, блокировка…), чтобы показать только разделы, где оно встречается.</string>
+    <string name="diagnosis_picker_title">Выберите диагнозы</string>
+    <string name="diagnosis_picker_add">Поиск диагнозов</string>
+    <string name="diagnosis_picker_title_single">Выберите диагноз</string>
+    <string name="diagnosis_picker_add_single">Поиск диагноза</string>
+    <string name="diagnosis_picker_none_single">Диагноз ещё не выбран</string>
+    <string name="diagnosis_picker_recent">Недавние диагнозы</string>
+    <string name="diagnosis_picker_none">Диагнозы ещё не выбраны</string>
+    <string
+        name="diagnosis_picker_search_hint"
+    >Поиск по названию или коду</string>
+    <string name="diagnosis_picker_clear">Очистить поиск</string>
+    <string name="diagnosis_picker_selected_count">Выбрано: %1$d</string>
+    <string name="diagnosis_picker_matches">Найдено: %1$d</string>
+    <string
+        name="diagnosis_picker_more"
+    >Показаны первые %1$d из %2$d. Продолжайте вводить, чтобы сузить результаты.</string>
+    <string
+        name="diagnosis_picker_no_match"
+    >Нет диагнозов, соответствующих поиску</string>
+    <string name="diagnosis_picker_done">Готово</string>
+    <string name="diagnosis_picker_remove">Удалить %1$s</string>
+    <string
+        name="diagnosis_picker_unavailable"
+    >Списка диагнозов нет на этом устройстве.</string>
+    <string name="diagnosis_picker_loading">Загрузка списка диагнозов…</string>
+    <string
+        name="diagnosis_picker_type_to_search"
+    >Введите название или код МКБ-10, чтобы искать среди диагнозов (%1$d)</string>
+    <string
+        name="diagnosis_picker_rank_hint"
+    >Первый диагноз — основной, остальные — вторичные.</string>
 </resources>

@@ -37,6 +37,7 @@ import androidx.lifecycle.viewModelScope
 import ca.uhn.fhir.context.FhirContext
 import ca.uhn.fhir.context.FhirVersionEnum
 import com.google.android.fhir.FhirEngine
+import com.google.android.fhir.LocalChange
 import com.google.android.fhir.datacapture.mapping.ResourceMapper
 import com.google.android.fhir.get
 import com.google.android.fhir.search.search
@@ -60,6 +61,7 @@ import org.hl7.fhir.r4.model.Questionnaire
 import org.hl7.fhir.r4.model.QuestionnaireResponse
 import org.hl7.fhir.r4.model.Reference
 import org.hl7.fhir.r4.model.Resource
+import org.hl7.fhir.r4.model.ResourceType
 import org.hl7.fhir.r4.model.StringType
 import org.hl7.fhir.r4.model.codesystems.ConditionCategory
 import org.openmrs.android.fhir.Constants
@@ -80,6 +82,12 @@ import org.openmrs.android.fhir.extensions.hasInvalidAnswersIgnoringPageSpacers
 import org.openmrs.android.fhir.extensions.nowUtcDateTime
 import org.openmrs.android.fhir.extensions.pruneOtherLanguageTranslations
 import org.openmrs.android.fhir.extensions.utcDateToLocalDate
+import org.openmrs.android.fhir.forms.diagnosis.RecentDiagnoses
+import org.openmrs.android.fhir.forms.diagnosis.diagnosisCatalogs
+import org.openmrs.android.fhir.forms.diagnosis.diagnosisChanges
+import org.openmrs.android.fhir.forms.diagnosis.diagnosisPickers
+import org.openmrs.android.fhir.forms.diagnosis.pickedDiagnoses
+import org.openmrs.android.fhir.forms.diagnosis.populateDiagnosisAnswers
 import org.openmrs.android.fhir.forms.readBundledQuestionnaireForEncounterType
 import org.openmrs.android.fhir.forms.storedQuestionnaires
 import org.openmrs.android.fhir.util.ExistingObservationIndex
@@ -192,6 +200,13 @@ constructor(
 
         val launchContexts = mapOf("observations" to observationBundle)
         val questionnaireResponse = ResourceMapper.populate(questionnaire, launchContexts)
+        if (questionnaire.diagnosisPickers().isNotEmpty()) {
+          questionnaire.populateDiagnosisAnswers(
+            questionnaireResponse,
+            getConditionsEncounterId(encounterId),
+            questionnaire.diagnosisCatalogs(applicationContext),
+          )
+        }
         convertDateTimeAnswersToDate(questionnaireResponse)
         val questionnaireResponseJson = parser.encodeResourceToString(questionnaireResponse)
         _encounterDataPair.postValue(questionnaireJson to questionnaireResponseJson)
@@ -282,6 +297,22 @@ constructor(
             }
           }
         }
+      }
+
+      if (questionnaire.diagnosisPickers().isNotEmpty()) {
+        val changes = questionnaire.diagnosisChanges(questionnaireResponse, conditions)
+        RecentDiagnoses.record(
+          applicationContext,
+          questionnaire.pickedDiagnoses(questionnaireResponse).map { it.code },
+        )
+        changes
+          .newConditions(
+            questionnaire.diagnosisCatalogs(applicationContext),
+            encounterSubject,
+            encounterReference,
+          )
+          .forEach { createResourceToDatabase(it) }
+        changes.toRemove.forEach { removeDiagnosis(it) }
       }
 
       deleteRemainingChildObservations(observationIndex, parentTracker)
@@ -579,6 +610,24 @@ constructor(
         filter(Condition.ENCOUNTER, { value = "Encounter/$encounterId" })
       }
     return searchResult.map { it.resource }
+  }
+
+  /**
+   * Takes a diagnosis back: one the server never received (still waiting to be uploaded) is simply
+   * dropped; one it has is deleted there too (the upload sends the delete).
+   */
+  private suspend fun removeDiagnosis(condition: Condition) {
+    enqueueResourceOperation {
+      val neverUploaded =
+        fhirEngine.getLocalChanges(ResourceType.Condition, condition.idPart).any {
+          it.type == LocalChange.Type.INSERT
+        }
+      if (neverUploaded) {
+        fhirEngine.purge(ResourceType.Condition, setOf(condition.idPart), true)
+      } else {
+        fhirEngine.delete(ResourceType.Condition, condition.idPart)
+      }
+    }
   }
 
   private suspend fun updateResourceToDatabase(resource: Resource) {

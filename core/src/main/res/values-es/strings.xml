@@ -1559,4 +1559,43 @@
     <string
         name="help_settings_search_body"
     >Escriba una palabra (sincronización, idioma, bloqueo…) para ver solo las secciones que la mencionan.</string>
+    <string name="diagnosis_picker_title">Seleccionar diagnósticos</string>
+    <string name="diagnosis_picker_add">Buscar diagnósticos</string>
+    <string
+        name="diagnosis_picker_title_single"
+    >Seleccionar un diagnóstico</string>
+    <string name="diagnosis_picker_add_single">Buscar un diagnóstico</string>
+    <string
+        name="diagnosis_picker_none_single"
+    >Aún no hay ningún diagnóstico seleccionado</string>
+    <string name="diagnosis_picker_recent">Diagnósticos recientes</string>
+    <string
+        name="diagnosis_picker_none"
+    >Aún no hay diagnósticos seleccionados</string>
+    <string
+        name="diagnosis_picker_search_hint"
+    >Buscar por nombre o código</string>
+    <string name="diagnosis_picker_clear">Borrar la búsqueda</string>
+    <string name="diagnosis_picker_selected_count">%1$d seleccionado(s)</string>
+    <string name="diagnosis_picker_matches">%1$d resultado(s)</string>
+    <string
+        name="diagnosis_picker_more"
+    >Se muestran los primeros %1$d de %2$d resultados. Siga escribiendo para acotarlos.</string>
+    <string
+        name="diagnosis_picker_no_match"
+    >Ningún diagnóstico coincide con la búsqueda</string>
+    <string name="diagnosis_picker_done">Listo</string>
+    <string name="diagnosis_picker_remove">Quitar %1$s</string>
+    <string
+        name="diagnosis_picker_unavailable"
+    >La lista de diagnósticos no está en este dispositivo.</string>
+    <string
+        name="diagnosis_picker_loading"
+    >Cargando la lista de diagnósticos…</string>
+    <string
+        name="diagnosis_picker_type_to_search"
+    >Escriba un nombre o un código CIE-10 para buscar entre %1$d diagnósticos</string>
+    <string
+        name="diagnosis_picker_rank_hint"
+    >El primer diagnóstico es el principal; los demás son secundarios.</string>
 </resources>

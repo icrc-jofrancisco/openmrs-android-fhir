@@ -81,6 +81,9 @@ import org.openmrs.android.fhir.extensions.generateUuid
 import org.openmrs.android.fhir.extensions.getQuestionnaireOrFromAssets
 import org.openmrs.android.fhir.extensions.hasInvalidAnswersIgnoringPageSpacers
 import org.openmrs.android.fhir.extensions.nowUtcDateTime
+import org.openmrs.android.fhir.forms.diagnosis.diagnosisCatalogs
+import org.openmrs.android.fhir.forms.diagnosis.diagnosisConditions
+import org.openmrs.android.fhir.forms.diagnosis.diagnosisPickers
 import org.openmrs.android.fhir.util.ParentKey
 import org.openmrs.android.fhir.util.buildObservationGroupLookup
 import org.openmrs.android.fhir.util.createParentObservation
@@ -130,6 +133,11 @@ constructor(
         }
       _questionnaire.value = loaded
       _questionnaireJson.value = json
+      // A long list of diagnoses is read while the first pages are filled in, not when it is
+      // opened.
+      if (loaded != null && loaded.diagnosisPickers().isNotEmpty()) {
+        withContext(defaultDispatcher) { loaded.diagnosisCatalogs(applicationContext) }
+      }
     }
   }
 
@@ -435,6 +443,16 @@ constructor(
         }
       }
     }
+
+    // The diagnoses picked in a diagnosis question, one encounter diagnosis each.
+    questionnaire
+      .diagnosisConditions(
+        applicationContext,
+        questionnaireResponse,
+        patientReference,
+        encounterReference,
+      )
+      .forEach { saveResourceToDatabase(it) }
 
     parentObservationsByKey.values.forEach { saveResourceToDatabase(it) }
     observationsToSave.forEach { saveResourceToDatabase(it) }
