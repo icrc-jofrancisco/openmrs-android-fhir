@@ -42,6 +42,7 @@ for every language). `fixtures/*.json` (optional) can add Encounter and Observat
 | `validation` | refuses uploads with a 400 and a message |
 | `slow` | waits 4 seconds before every answer |
 | `offline` | drops the connection without an answer |
+| `cohort-module` | refuses to write a patient list (422, as a server with the Cohort Module and without the patient list module does) and does not know `$add-members`: the app then leaves the changes to patient lists out. A concept whose id starts with `0000` does not exist on any scenario |
 
 ## What it answers
 

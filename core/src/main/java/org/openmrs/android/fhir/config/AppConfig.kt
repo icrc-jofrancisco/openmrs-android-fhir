@@ -56,6 +56,15 @@ data class FormSectionConfig(
     names[language.lowercase()] ?: defaultName.ifBlank { names.values.firstOrNull().orEmpty() }
 }
 
+/**
+ * The concepts a group session records with every encounter (a blank id: not recorded). A concept
+ * the server does not have makes it refuse the whole encounter, so only set the ones it has.
+ */
+data class GroupSessionConfig(
+  val cohortIdentifierConcept: String = "",
+  val cohortNameConcept: String = "",
+)
+
 /** How much of the user's trail the audit log keeps. */
 class AuditConfig(val maxActions: Int)
 
@@ -82,6 +91,7 @@ internal constructor(
   /** Empty: every available form is listed in one section. */
   val formSections: List<FormSectionConfig>,
   val audit: AuditConfig = AuditConfig(DEFAULT_AUDIT_ACTIONS),
+  val groupSessions: GroupSessionConfig = GroupSessionConfig(),
 ) {
   companion object {
     /** Audit entries kept when the file does not say. */
@@ -112,6 +122,7 @@ internal constructor(
       var supportEmail = ""
       var diagnosticsPassword = ""
       var auditActions = DEFAULT_AUDIT_ACTIONS
+      var groupSessions = GroupSessionConfig()
       val sections = mutableListOf<FormSectionConfig>()
 
       var sectionName = ""
@@ -147,6 +158,12 @@ internal constructor(
             "diagnostics" -> diagnosticsPassword = attr("password").orEmpty()
             "audit" ->
               auditActions = (attr("max-actions")?.toIntOrNull() ?: auditActions).coerceIn(50, 5000)
+            "group-sessions" ->
+              groupSessions =
+                GroupSessionConfig(
+                  cohortIdentifierConcept = attr("cohort-identifier-concept").orEmpty(),
+                  cohortNameConcept = attr("cohort-name-concept").orEmpty(),
+                )
             "section" -> {
               inSection = true
               sectionName = attr("name").orEmpty()
@@ -189,6 +206,7 @@ internal constructor(
         diagnosticsPassword = diagnosticsPassword,
         formSections = sections,
         audit = AuditConfig(auditActions),
+        groupSessions = groupSessions,
       )
     }
   }

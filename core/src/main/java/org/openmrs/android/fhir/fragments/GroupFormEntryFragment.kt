@@ -138,6 +138,7 @@ class GroupFormEntryFragment : Fragment(R.layout.group_formentry_fragment) {
     adoptRestoredForms()
     observeLoading()
     binding.patientTabLayout.visibility = View.GONE
+    viewModel.patientListId = args.patientListId
     viewModel.getPatients(args.patientIds.toSet())
     observeResourcesSaveAction()
     lifecycleScope.launch {
@@ -275,6 +276,7 @@ class GroupFormEntryFragment : Fragment(R.layout.group_formentry_fragment) {
         responseJson = viewModel.screenerResponseJson,
         showSubmitButton = true,
         submitButtonText = getString(R.string.submit),
+        allowSubmitAnyway = false,
       )
     childFragmentManager.commit {
       replace(R.id.form_entry_container, fragment, SCREENER_FRAGMENT_TAG)

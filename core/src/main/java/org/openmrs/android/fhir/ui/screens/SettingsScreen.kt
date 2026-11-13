@@ -90,6 +90,8 @@ object SettingsDefaults {
 object SettingsTestTags {
   const val NetworkSwitch = "SettingsNetworkSwitch"
   const val ConnectionTestButton = "SettingsConnectionTestButton"
+  const val AdvancedToggle = "SettingsAdvancedToggle"
+  const val CompatibilityButton = "SettingsCompatibilityButton"
   const val NotificationsSwitch = "SettingsNotificationsSwitch"
   const val TokenDelayField = "SettingsTokenDelayField"
   const val PeriodicDelayField = "SettingsPeriodicDelayField"
@@ -184,6 +186,8 @@ fun SettingsScreen(
   onRememberLocationToggle: (Boolean) -> Unit = {},
   /** Called with the new server (`null`: the build's default) once the user confirmed. */
   onServerChanged: ((String?) -> Unit)? = null,
+  compatibility: CompatibilitySummary? = null,
+  onOpenCompatibility: (() -> Unit)? = null,
   favoriteFormOptions: List<FormItem>? = null,
   favoriteFormIds: List<String> = emptyList(),
   onFavoriteFormsSaved: ((List<String>) -> Unit)? = null,
@@ -516,8 +520,6 @@ fun SettingsScreen(
             testTag = SettingsTestTags.NetworkSwitch,
           )
           HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-          ConnectionTest(onServerChanged)
-          HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
           SettingsSwitchRow(
             label = stringResource(R.string.settings_auto_sync),
             checked = uiState.isAutoSyncEnabled,
@@ -546,22 +548,6 @@ fun SettingsScreen(
             enabled = uiState.isAutoSyncEnabled,
           )
           HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-          SettingsDropdown(
-            label = stringResource(R.string.token_check_delay_in_minutes),
-            selectedValue = uiState.tokenCheckDelayMinutes,
-            options = tokenDelayOptions,
-            onOptionSelected = onTokenDelaySelected,
-            testTag = SettingsTestTags.TokenDelayField,
-          )
-          SettingsDropdown(
-            label = stringResource(R.string.periodic_sync_delay_in_minutes),
-            selectedValue = uiState.periodicSyncDelayMinutes,
-            options = periodicSyncDelayOptions,
-            onOptionSelected = onPeriodicSyncDelaySelected,
-            testTag = SettingsTestTags.PeriodicDelayField,
-            enabled = uiState.isAutoSyncEnabled,
-          )
-          HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
           SettingsAction(
             description =
               stringResource(R.string.settings_initial_sync_description) +
@@ -574,6 +560,17 @@ fun SettingsScreen(
             testTag = SettingsTestTags.InitialSyncButton,
           )
         }
+
+        AdvancedSettingsSection(
+          uiState = uiState,
+          tokenDelayOptions = tokenDelayOptions,
+          periodicSyncDelayOptions = periodicSyncDelayOptions,
+          onTokenDelaySelected = onTokenDelaySelected,
+          onPeriodicSyncDelaySelected = onPeriodicSyncDelaySelected,
+          onServerChanged = onServerChanged,
+          compatibility = compatibility,
+          onOpenCompatibility = onOpenCompatibility,
+        )
 
         if (query.isNotBlank() && search.shown == 0) {
           Text(

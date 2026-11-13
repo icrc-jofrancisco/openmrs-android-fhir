@@ -26,53 +26,44 @@
 * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-package org.openmrs.android.fhir.fragments
 
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
+package org.openmrs.android.fhir.config
+
+import java.io.StringReader
+import org.junit.Assert.assertEquals
 import org.junit.Test
-import org.openmrs.android.fhir.ui.patient.PatientSelectionUiState
-import org.openmrs.android.fhir.viewmodel.PatientListViewModel
+import org.kxml2.io.KXmlParser
 
-class PatientSelectionDialogFragmentTest {
+class AppConfigTest {
 
-  @Test
-  fun toggleSelection_addsAndRemovesIds() {
-    val firstToggle = emptySet<String>().toggleSelection("id-1")
-    assertTrue(firstToggle.contains("id-1"))
-
-    val secondToggle = firstToggle.toggleSelection("id-1")
-    assertTrue(secondToggle.isEmpty())
+  private fun parse(extra: String): AppConfig {
+    val xml =
+      """<app-config>
+           <server url="http://host/openmrs" />
+           <diagnostics password="x" />
+           $extra
+         </app-config>"""
+    val parser = KXmlParser()
+    parser.setInput(StringReader(xml))
+    return AppConfig.parse(parser)
   }
 
   @Test
-  fun uiStateReflectsSelectionAndStartState() {
-    val patients = listOf(samplePatient("one"), samplePatient("two"))
-
-    val initialState = PatientSelectionUiState(patients = patients, selectedIds = emptySet())
-    assertTrue(initialState.isSelectAllEnabled)
-    assertFalse(initialState.isSelectAllChecked)
-    assertFalse(initialState.isStartEnabled)
-
-    val fullySelectedState =
-      PatientSelectionUiState(patients = patients, selectedIds = setOf("one", "two"))
-    assertTrue(fullySelectedState.isSelectAllChecked)
-    assertTrue(fullySelectedState.isStartEnabled)
+  fun `the cohort concepts come from the configuration`() {
+    val config =
+      parse(
+        """<group-sessions cohort-identifier-concept=" a-uuid "
+             cohort-name-concept="b-uuid" />""",
+      )
+    assertEquals("a-uuid", config.groupSessions.cohortIdentifierConcept)
+    assertEquals("b-uuid", config.groupSessions.cohortNameConcept)
   }
 
-  private fun samplePatient(resourceId: String): PatientListViewModel.PatientItem {
-    return PatientListViewModel.PatientItem(
-      id = resourceId,
-      resourceId = resourceId,
-      name = "Patient $resourceId",
-      gender = "",
-      dob = null,
-      phone = "",
-      city = "",
-      country = "",
-      isActive = true,
-      identifiers = emptyList(),
-      html = "",
-    )
+  @Test
+  fun `without the element or an attribute the observation is not recorded`() {
+    assertEquals(GroupSessionConfig(), parse("").groupSessions)
+    val one = parse("""<group-sessions cohort-name-concept="b-uuid" />""").groupSessions
+    assertEquals("", one.cohortIdentifierConcept)
+    assertEquals("b-uuid", one.cohortNameConcept)
   }
 }

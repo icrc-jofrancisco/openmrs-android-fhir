@@ -34,22 +34,11 @@ import java.util.Date
 import org.hl7.fhir.r4.model.Enumerations
 import org.hl7.fhir.r4.model.Patient
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PatientListViewModelTest {
-
-  @Test
-  fun filterSelectedIdsForPatients_removesUnknownIds() {
-    val patients =
-      listOf(
-        samplePatientItem("first"),
-        samplePatientItem("second"),
-      )
-
-    val filtered = filterSelectedIdsForPatients(patients, setOf("first", "missing"))
-
-    assertEquals(setOf("first"), filtered)
-  }
 
   @Test
   fun toPatientItem_mapsCoreFields() {
@@ -77,19 +66,46 @@ class PatientListViewModelTest {
     assertEquals(1, item.identifiers.size)
   }
 
-  private fun samplePatientItem(resourceId: String): PatientListViewModel.PatientItem {
-    return PatientListViewModel.PatientItem(
-      id = resourceId,
-      resourceId = resourceId,
-      name = "Patient $resourceId",
-      gender = "",
-      dob = null,
-      phone = "",
-      city = "",
-      country = "",
-      isActive = true,
-      identifiers = emptyList(),
-      html = "",
-    )
+  private fun patient(given: String, family: String, born: LocalDate? = null) =
+    Patient().apply {
+      addName().setFamily(family).addGiven(given)
+      born?.let { birthDate = Date.from(it.atStartOfDay(ZoneOffset.UTC).toInstant()) }
+      addIdentifier().value = "ID-$given"
+      addTelecom().value = "555-$given"
+    }
+
+  @Test
+  fun matchesText_everyWordOfTheTextIsInTheName() {
+    val jane = patient("Jane", "Doe")
+
+    assertTrue(jane.matchesText("jane doe"))
+    assertTrue(jane.matchesText("  doe   jane "))
+    assertFalse(jane.matchesText("jane smith"))
+  }
+
+  @Test
+  fun matchesText_anIdentifierOrAPhoneAlsoMatches() {
+    val jane = patient("Jane", "Doe")
+
+    assertTrue(jane.matchesText("id-jane"))
+    assertTrue(jane.matchesText("555-Jane"))
+    assertFalse(jane.matchesText("ID-"))
+  }
+
+  @Test
+  fun matchesText_blankMatchesEveryone() {
+    assertTrue(patient("Jane", "Doe").matchesText("   "))
+  }
+
+  @Test
+  fun patientOrder_byNameAndByAge() {
+    val ann = patient("Ann", "A", LocalDate.of(2000, 1, 1))
+    val bob = patient("bob", "B", LocalDate.of(1990, 1, 1))
+    val cy = patient("Cy", "C")
+    val all = listOf(cy, bob, ann)
+
+    assertEquals(listOf(ann, bob, cy), all.sortedWith(patientOrder(PatientSort.NAME_ASC)))
+    assertEquals(listOf(cy, bob, ann), all.sortedWith(patientOrder(PatientSort.NAME_DESC)))
+    assertEquals(listOf(bob, ann, cy), all.sortedWith(patientOrder(PatientSort.AGE_OLDEST)))
   }
 }

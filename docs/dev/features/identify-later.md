@@ -37,10 +37,23 @@ it is, and finds the real patient on the server later.
   the real patient (same ids, visits first, then encounters, then observations), so they are
   ordinary local changes; finally the placeholder is purged and the row removed.
 
+## Where they show
+
+* The Home summary says how many patients wait to be identified (`HomeSummary.toIdentify`), next to
+  "Everything is uploaded": the sync does not send them, so that sentence alone would hide them.
+* The status card of the Sync page says how many ("1 patient to identify") under the pending changes.
+  The pending tab lists them apart, above the changes to upload, with their visits, encounters and
+  observations folded under them (`UnsyncedResourcesViewModel.fetchPatientsToIdentify`). Each row has
+  an **Identify now** link that opens the identification for that patient (`MainActivity.showIdentifyDialog`
+  with the id). The rest is read only: nothing there can be downloaded or deleted, since none of it is in
+  the upload queue. There is no separate card for them.
+
 ## Limits
 
 * The records are only on this device until identified (they are not in the export of unsynced
   data either, since they are not unsynced).
 * Records of a patient identified as someone already on the device are merged into that patient
   like any other new records.
-* Group sessions and other places that pick patients by list also show the placeholders.
+* Group sessions and other places that pick patients by list also show the placeholders. A
+  placeholder can be added to a patient list: the add waits (it is not sent) until the patient is
+  identified, then goes for the real patient (`patient-list-management.md`).

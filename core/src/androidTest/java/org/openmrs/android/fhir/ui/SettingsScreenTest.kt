@@ -38,6 +38,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -95,6 +96,7 @@ class SettingsScreenTest {
       }
     }
 
+    composeRule.onNodeWithTag(SettingsTestTags.AdvancedToggle).performScrollTo().performClick()
     composeRule.onNodeWithTag(SettingsTestTags.TokenDelayField).performClick()
     composeRule.onNodeWithText("5").performClick()
 

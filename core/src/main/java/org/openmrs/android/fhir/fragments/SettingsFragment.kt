@@ -42,6 +42,7 @@ import androidx.biometric.BiometricManager
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.content.ContextCompat
@@ -54,6 +55,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.NavHostFragment
+import androidx.navigation.fragment.findNavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import javax.inject.Inject
 import kotlinx.coroutines.delay
@@ -72,6 +74,7 @@ import org.openmrs.android.fhir.auth.GuestSession
 import org.openmrs.android.fhir.auth.OfflineAuthMethod
 import org.openmrs.android.fhir.auth.OfflineAuthPrompt
 import org.openmrs.android.fhir.data.QuestionnaireUpdater
+import org.openmrs.android.fhir.data.remote.CheckState
 import org.openmrs.android.fhir.data.remote.isServerReachable
 import org.openmrs.android.fhir.data.sync.AutoSyncGate
 import org.openmrs.android.fhir.data.transfer.DataTransfer
@@ -87,6 +90,7 @@ import org.openmrs.android.fhir.forms.EmbeddedFormsStore
 import org.openmrs.android.fhir.ui.components.AppMessage
 import org.openmrs.android.fhir.ui.components.MessageKind
 import org.openmrs.android.fhir.ui.screens.AppLockUi
+import org.openmrs.android.fhir.ui.screens.CompatibilitySummary
 import org.openmrs.android.fhir.ui.screens.SettingsDefaults
 import org.openmrs.android.fhir.ui.screens.SettingsScreen
 import org.openmrs.android.fhir.ui.screens.ShareSettingsDialog
@@ -197,6 +201,18 @@ class SettingsFragment : Fragment() {
       val favoriteIds by favoriteFormsViewModel.favoriteIds.collectAsStateWithLifecycle()
       val customSections by favoriteFormsViewModel.customSections.collectAsStateWithLifecycle()
       val defaultSections by favoriteFormsViewModel.defaultSections.collectAsStateWithLifecycle()
+      val serverReport by
+        remember { FhirApplication.appComponent(context).serverCapabilities().report }
+          .collectAsStateWithLifecycle()
+      val compatibility =
+        if (serverReport.checkedAt == 0L) {
+          null
+        } else {
+          CompatibilitySummary(
+            supported = serverReport.results.count { it.state == CheckState.OK },
+            unsupported = serverReport.results.count { it.state == CheckState.UNSUPPORTED },
+          )
+        }
       OpenMrsTheme {
         if (showShare.value) {
           ShareSettingsDialog(
@@ -237,6 +253,11 @@ class SettingsFragment : Fragment() {
           onShareMyDataToggle = settingsViewModel::onShareMyDataToggle,
           onRememberLocationToggle = settingsViewModel::onRememberLocationToggle,
           onServerChanged = { url -> (activity as? MainActivity)?.changeServer(url) },
+          compatibility = compatibility,
+          onOpenCompatibility = {
+            findNavController()
+              .navigate(R.id.action_settings_fragment_to_serverCompatibilityFragment)
+          },
           selectedLanguage = AppLanguage.current(context),
           onLanguageSelected = { AppLanguage.apply(context, it) },
           onInitialSyncClicked = {

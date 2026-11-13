@@ -50,7 +50,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.PersonSearch
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -75,6 +74,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -92,9 +92,8 @@ import org.openmrs.android.fhir.ui.tutorial.tutorialTarget
 object SyncScreenTestTags {
   const val Screen = "SyncScreen"
   const val StatusCard = "SyncStatusCard"
-  const val UnidentifiedCard = "SyncUnidentifiedCard"
+  const val ToIdentifyCount = "SyncToIdentifyCount"
   const val CancelSyncButton = "SyncCancelButton"
-  const val IdentifyButton = "SyncIdentifyButton"
   const val SyncNowButton = "SyncNowButton"
   const val PendingTab = "SyncPendingTab"
   const val HistoryTab = "SyncHistoryTab"
@@ -128,20 +127,21 @@ fun SyncScreen(
   defaultSyncMode: SyncMode = SyncMode.BOTH,
   /** The server cannot be reached: nothing can be synced now. */
   syncAvailable: Boolean = true,
-  /** Patients recorded to be identified after: never part of a sync until identified. */
-  unidentifiedCount: Int = 0,
-  onIdentify: () -> Unit = {},
+  onIdentify: (patientId: String) -> Unit = {},
   /** Stops the sync that is running. */
   onCancelSync: () -> Unit = {},
   /** Identifying needs a signed-in user with a connection to the server. */
   identifyAvailable: Boolean = true,
+  toIdentifyResources: List<UnsyncedResource> = emptyList(),
 ) {
   val topInset = rememberAppBarHeight()
   val pendingCount = pendingResources.count { it is UnsyncedResource.PatientItem }
 
   // Until the user picks a tab: pending changes first, the history when there is nothing to upload.
   var chosenTab by rememberSaveable { mutableStateOf<Int?>(null) }
-  val selectedTab = chosenTab ?: if (pendingCount > 0 || isLoadingPending) 0 else 1
+  val selectedTab =
+    chosenTab
+      ?: if (pendingCount > 0 || isLoadingPending || toIdentifyResources.isNotEmpty()) 0 else 1
 
   Column(
     modifier =
@@ -157,6 +157,7 @@ fun SyncScreen(
         isSyncing = isSyncing,
         progress = syncProgress,
         pendingCount = pendingCount,
+        toIdentifyCount = toIdentifyResources.count { it is UnsyncedResource.PatientItem },
         lastSyncText = lastSyncText,
         onSyncNow = onSyncNow,
         onCancelSync = onCancelSync,
@@ -165,15 +166,6 @@ fun SyncScreen(
         syncAvailable = syncAvailable,
         modifier = Modifier.padding(horizontal = 16.dp),
       )
-      if (unidentifiedCount > 0) {
-        Spacer(modifier = Modifier.height(10.dp))
-        UnidentifiedPatientsCard(
-          count = unidentifiedCount,
-          onIdentify = onIdentify,
-          identifyAvailable = identifyAvailable,
-          modifier = Modifier.padding(horizontal = 16.dp),
-        )
-      }
     }
     Spacer(modifier = Modifier.height(8.dp))
     TabRow(
@@ -216,6 +208,9 @@ fun SyncScreen(
           onDownloadResource = onDownloadResource,
           onDeleteAll = onDeleteAllPending,
           onDownloadAll = onDownloadAllPending,
+          toIdentify = toIdentifyResources,
+          onIdentify = onIdentify,
+          identifyAvailable = identifyAvailable,
         )
       } else {
         SyncHistoryList(
@@ -223,81 +218,6 @@ fun SyncScreen(
           onDeleteSession = onDeleteSession,
           onClearAll = onClearHistory,
         )
-      }
-    }
-  }
-}
-
-/**
- * Patients recorded to be identified after: what they hold is not sent by any sync, so the user is
- * told how many there are and can identify them before syncing. Looks like the status card above.
- */
-@Composable
-private fun UnidentifiedPatientsCard(
-  count: Int,
-  onIdentify: () -> Unit,
-  identifyAvailable: Boolean,
-  modifier: Modifier = Modifier,
-) {
-  val accent = OpenMrsTheme.colors.warning
-  Surface(
-    modifier =
-      modifier
-        .fillMaxWidth()
-        .testTag(SyncScreenTestTags.UnidentifiedCard)
-        .tutorialTarget(TutorialTargets.SYNC_IDENTIFY),
-    shape = RoundedCornerShape(20.dp),
-    color = MaterialTheme.colorScheme.surface,
-    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-    shadowElevation = 1.dp,
-  ) {
-    Row(
-      modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 8.dp),
-      verticalAlignment = Alignment.CenterVertically,
-    ) {
-      Box(
-        modifier = Modifier.size(44.dp).clip(CircleShape).background(accent.copy(alpha = 0.18f)),
-        contentAlignment = Alignment.Center,
-      ) {
-        Icon(
-          imageVector = Icons.Default.PersonSearch,
-          contentDescription = null,
-          tint = accent,
-          modifier = Modifier.size(24.dp),
-        )
-      }
-      Spacer(modifier = Modifier.width(14.dp))
-      Column(modifier = Modifier.weight(1f)) {
-        Text(
-          text = stringResource(R.string.sync_identify_title, count),
-          style = MaterialTheme.typography.titleMedium,
-          fontWeight = FontWeight.SemiBold,
-          color = MaterialTheme.colorScheme.onSurface,
-        )
-        Text(
-          text =
-            stringResource(
-              if (identifyAvailable) {
-                R.string.sync_identify_subtitle
-              } else {
-                R.string.identify_requires_connection
-              },
-            ),
-          style = MaterialTheme.typography.bodySmall,
-          color =
-            if (identifyAvailable) {
-              MaterialTheme.colorScheme.onSurfaceVariant
-            } else {
-              MaterialTheme.colorScheme.error
-            },
-        )
-      }
-      TextButton(
-        onClick = onIdentify,
-        enabled = identifyAvailable,
-        modifier = Modifier.testTag(SyncScreenTestTags.IdentifyButton),
-      ) {
-        Text(text = stringResource(R.string.identify_sync_now))
       }
     }
   }
@@ -312,6 +232,7 @@ private fun SyncStatusCard(
   isSyncing: Boolean,
   progress: SyncProgressState,
   pendingCount: Int,
+  toIdentifyCount: Int,
   lastSyncText: String,
   onSyncNow: (SyncMode) -> Unit,
   onCancelSync: () -> Unit,
@@ -385,6 +306,20 @@ private fun SyncStatusCard(
               text = stringResource(R.string.sync_last_value, lastSyncText),
               style = MaterialTheme.typography.bodySmall,
               color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+          }
+          if (toIdentifyCount > 0) {
+            Text(
+              modifier = Modifier.testTag(SyncScreenTestTags.ToIdentifyCount),
+              text =
+                pluralStringResource(
+                  R.plurals.home_summary_to_identify,
+                  toIdentifyCount,
+                  toIdentifyCount,
+                ),
+              style = MaterialTheme.typography.bodyMedium,
+              fontWeight = FontWeight.SemiBold,
+              color = OpenMrsTheme.colors.warning,
             )
           }
         }

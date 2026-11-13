@@ -26,11 +26,12 @@ from socketserver import ThreadingMixIn
 from urllib.parse import parse_qs, urlparse, urlencode
 
 import data
+import groups
 
 PREFIX = "/openmrs"
 FHIR = PREFIX + "/ws/fhir2/R4"
 REST = PREFIX + "/ws/rest/v1"
-SCENARIOS = ("default", "empty", "error", "validation", "slow", "offline")
+SCENARIOS = ("default", "empty", "error", "validation", "slow", "offline", "cohort-module")
 SLOW_SECONDS = 4.0
 PAGE = 50
 
@@ -403,6 +404,20 @@ class Handler(BaseHTTPRequestHandler):
                 },
             )
             return True
+        if route.startswith("cohortm/cohort"):
+            if STATE.scenario == "cohort-module":
+                self.reply(200, {"results": []})
+            else:
+                self.reply(404, {"error": {"message": "Resource not found"}})
+            return True
+        m = re.match(r"concept/([^/?]+)$", route)
+        if m:
+            # A concept whose id starts with 0000 is one this server does not have.
+            if m.group(1).startswith("0000"):
+                self.reply(404, {"error": {"message": "Object with given uuid doesn't exist"}})
+            else:
+                self.reply(200, {"uuid": m.group(1), "display": "Demo concept"})
+            return True
         m = re.match(r"idgen/identifiersource/([^/]+)/identifier$", route)
         if m and self.command == "POST":
             self.read_json()
@@ -452,6 +467,18 @@ class Handler(BaseHTTPRequestHandler):
         kind = parts[0]
         if kind not in ("Location", "Group", "Patient", "Encounter", "Observation", "Condition", "Questionnaire", "Practitioner", "RiskAssessment", "Person", "Appointment", "Medication", "MedicationRequest", "AllergyIntolerance", "Procedure", "DiagnosticReport", "ServiceRequest"):
             return False
+        if kind == "Group" and STATE.scenario == "cohort-module" and self.command != "GET":
+            # The Cohort Module is installed and the patient list module is not: FHIR cannot write a Group.
+            self.read_json()
+            if self.command == "POST" and parts[-1].startswith("$"):
+                self.fhir_reply(400, outcome("error", "processing", "The FHIR endpoint on this server does not know how to handle POST operation " + parts[-1]))
+            elif self.command == "PATCH":
+                self.fhir_reply(400, outcome("error", "processing", "Patch is not supported for Group"))
+            else:
+                self.fhir_reply(422, outcome("error", "processing", "A standard cohort should not be created while the cohort module is active"))
+            return True
+        if kind == "Group" and groups.handle(self, STATE, parts, query):
+            return True
         if len(parts) == 1 and self.command == "GET":
             return self.search(kind, query)
         if len(parts) == 2:
@@ -571,13 +598,15 @@ class Handler(BaseHTTPRequestHandler):
                 for r in STATE.store.get(inc_kind, {}).values():
                     if r.get("subject", {}).get("reference", "").split("/")[-1] in have:
                         includes.append(r)
+        if kind == "Group":
+            items = [groups.present(STATE, r) for r in items]
         total = len(items)
         count = int(one("_count") or PAGE)
         offset = int(one("__offset") or 0)
         page = items[offset: offset + count]
         entries = []
         for r in page:
-            entries.append({"fullUrl": "%s/%s/%s" % (self.base_url(), kind, r["id"]), "resource": minimal(r) if one("_elements") == "id" else r, "search": {"mode": "match"}})
+            entries.append({"fullUrl": "%s/%s/%s" % (self.base_url(), kind, r["id"]), "resource": minimal(r) if one("_elements") == "id" else (groups.trim(r, one("_elements")) if kind == "Group" and one("_elements") else r), "search": {"mode": "match"}})
         if offset == 0:
             for r in includes:
                 entries.append({"fullUrl": "%s/%s/%s" % (self.base_url(), r["resourceType"], r["id"]), "resource": r, "search": {"mode": "include"}})

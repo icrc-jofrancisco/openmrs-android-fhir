@@ -22,6 +22,8 @@ An app is configured by one file, `res/xml/app_config.xml`, in its module. It is
 | | `live-mode-default` | `true`: live mode (what is saved is sent at once, the server can be searched) is on until the user changes it in Settings; `false` (default): off. Resetting the settings goes back to this value. |
 | `<patients>` | `registration-form` | Id of a synced questionnaire, or the file name of one in `assets`, used to register patients. |
 | | `fetch-identifiers` | `true`: the device fetches auto-generated identifiers and adds them to new patients; `false`: the server creates them. |
+| `<group-sessions>` | `cohort-identifier-concept` | Concept (UUID) of the observation that records the id of the patient list a group session was held for, with every encounter of the session. Blank or absent: not recorded. |
+| | `cohort-name-concept` | The same for the name of the list. A concept the server does not have makes it refuse the encounter, so only set the ones it has. |
 | `<support>` | `email` | Where **Send diagnostics** and exported unsynced data go. |
 | `<diagnostics>` | `password` | **Required.** Password of the diagnostics archive and of the application log; support needs it to open a report. Change the example value. A setting of its own: it is not tied to the support e-mail. |
 | `<audit>` | `max-actions` | How many of the user's last steps the audit trail keeps for support (50-5000, default 500); older ones are overwritten. |
